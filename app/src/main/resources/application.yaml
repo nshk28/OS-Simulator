@@ -1,0 +1,53 @@
+# application.yml
+# ──────────────────────────────────────────────────────────────
+# Spring Boot reads this file automatically on startup.
+# Values here override Spring's defaults and can be injected
+# into Java classes with @Value("${property.path}").
+#
+# We use YAML (not .properties) because nested config is cleaner:
+#   kernel.tick.interval-ms: 200
+# vs properties file:
+#   kernel.tick.interval-ms=200
+# ──────────────────────────────────────────────────────────────
+
+server:
+  # The port the embedded Tomcat listens on.
+  # Default is 8080. Keeping it explicit so it's not a surprise.
+  port: 8080
+
+spring:
+  application:
+    # Application name — appears in logs.
+    name: mini-os-sim
+
+  jackson:
+    # Serialize java.time.Instant as an ISO-8601 string
+    # e.g. "2024-01-15T10:30:00Z" instead of a raw epoch number.
+    # This makes the WebSocket JSON readable in the React UI.
+    serialization:
+      write-dates-as-timestamps: false
+
+# ── Custom kernel configuration ────────────────────────────────
+# These are our own properties — Spring doesn't know about them.
+# KernelSimulator will read them with @Value injection.
+kernel:
+  tick:
+    # How often the scheduler runs, in milliseconds.
+    # 200ms = 5 ticks per second. The React UI re-renders on each tick.
+    # Too low (< 50ms) → UI thrashes. Too high (> 1000ms) → feels sluggish.
+    interval-ms: 200
+
+    # Default time slice per process, measured in ticks (not ms).
+    # With interval-ms=200 and time-slice-ticks=3:
+    #   one process gets 3 × 200ms = 600ms of CPU before preemption.
+    # This maps to Round Robin quantum size.
+    time-slice-ticks: 3
+
+  process:
+    # How many processes can exist at once.
+    # Beyond this limit, spawn() is rejected.
+    max-count: 50
+
+    # Total simulated RAM. Used for the memory meter in the UI.
+    # Processes claim slices of this. We don't enforce limits in v1.
+    total-memory-mb: 4096
